@@ -1,0 +1,35 @@
+Goal: A general purpose variance based sensitivity analysis package
+Objective: Saltelli's method with higher order terms
+
+Must haves (absolute requirement for project success):
+
+* A git repository for project on LoLab-VU
+* A setup.py install for creating eggs
+* A set of unit tests (nose) run from setup.py
+* Full documentation in sphinx
+
+Should haves:
+
+* Scaling helper methods, linear, log
+* Unit tests should utilize Sobol g-function
+* Documentation should reference Saltelli's equations and paper throughout.
+
+Could haves:
+
+* Unit tests include documentation test
+* A nice example as part of documentation that explains utility and meaning of results.
+
+Would haves:
+
+* Unit tests for more advanced models.
+
+##################
+
+To understand this package and the paper, you must understand the following:
+
+* Statistical variance in data (and expectations)
+* Identical and Independence Properties
+* Monte-Carlo methods
+* Low Discrepency Sequences, and how that improve efficiency of Monte-Carlo Methods
+* With this, Saltelli's method becomes approachable.
+

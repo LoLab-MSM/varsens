@@ -19,14 +19,6 @@ def varsens(objective, k, n, scaling, log_scaling=False, verbose=True):
     if verbose: print "Final sensitivity calculation"
     return getvarsens(fM_1, fM_2, fN_j, fN_nj)
 
-def scale(points, scaling, log_scaling=False):
-    if log_scaling:
-# FIXME, I THINK THIS IS ALL BACKWARD, Ugh.
-        s = numpy.exp(scaling)
-        return numpy.log(points*(s[1]-s[0]) + s[0])
-    else:
-        return points * (scaling[1] - scaling[0]) + scaling[0]
-
 def move_spinner(i):
     spin = ("|", "/","-", "\\")
     print "[%s] %d\r"%(spin[i%4],i),
@@ -113,27 +105,27 @@ def getvarsens(fM_1, fM_2, fN_j, fN_nj):
     return Sens, SensT, var_y, E_2
 
 
-# Working on a test function here
-
-# This is defined on the range [0..1]
-# Eq (29)
-def g_function(x, a):
-    return numpy.prod([gi_function(xi, a[i]) for i,xi in enumerate(x)])
-
-# Eq (30), Validated
-def gi_function(xi, ai):
-    return (numpy.abs(4.0*xi-2.0)+ai) / (1.0+ai)
-
-model = [0, 0.5, 3, 9, 99, 99]
-
-# Analytical answer, Eq (34) divided by V(y), matches figure
-answer = 1.0/(3.0* ((numpy.array(model) + 1.0)**2.0))
-numpy.round(answer, 3)
-
-
-def g_objective(x): return g_function(x, model)
-
-v = varsens(g_objective, 6, 1024, numpy.array([[0.0]*6, [1.0]*6]))
+## Working on a test function here
+#
+## This is defined on the range [0..1]
+## Eq (29)
+#def g_function(x, a):
+#    return numpy.prod([gi_function(xi, a[i]) for i,xi in enumerate(x)])
+#
+## Eq (30), Validated
+#def gi_function(xi, ai):
+#    return (numpy.abs(4.0*xi-2.0)+ai) / (1.0+ai)
+#
+#model = [0, 0.5, 3, 9, 99, 99]
+#
+## Analytical answer, Eq (34) divided by V(y), matches figure
+#answer = 1.0/(3.0* ((numpy.array(model) + 1.0)**2.0))
+#numpy.round(answer, 3)
+#
+#
+#def g_objective(x): return g_function(x, model)
+#
+#v = varsens(g_objective, 6, 1024, numpy.array([[0.0]*6, [1.0]*6]))
 
 # http://www.jstor.org/stable/pdfplus/2676831.pdf
 #from numpy.polynomial.legendre import legval

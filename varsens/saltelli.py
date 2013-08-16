@@ -1,21 +1,10 @@
-
-import pysb.bng
 import ghalton
 import numpy
 import sys
-from sobol_seq import i4_sobol_generate
 
 def varsens(objective, k, n, scaling, log_scaling=False, verbose=True):
     if verbose: print "Generating Low Discrepancy Sequence"
-    
-    # This is a known working strategy
-    #seq = ghalton.Halton(k) # half for A, and half for B
-    #seq.get(2*(k*k-k)) # Burn away any face exploration off the Halton
-    #M_1  = scale(numpy.array(seq.get(n)), scaling, log_scaling)  # See Eq (9)
-    #x = numpy.transpose(i4_sobol_generate(k, n, k+numpy.random.randint(2**14)))
-    #M_2  = scale(x, scaling, log_scaling)
 
-    # This appears to work!
     seq = ghalton.Halton(k*2)
     seq.get(20*k) # Remove initial linear correlation
     x = numpy.array(seq.get(n))
@@ -30,7 +19,7 @@ def varsens(objective, k, n, scaling, log_scaling=False, verbose=True):
     if verbose: print "Final sensitivity calculation"
     return getvarsens(fM_1, fM_2, fN_j, fN_nj)
 
-def scale(points, scaling, log_scaling):
+def scale(points, scaling, log_scaling=False):
     if log_scaling:
 # FIXME, I THINK THIS IS ALL BACKWARD, Ugh.
         s = numpy.exp(scaling)

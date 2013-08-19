@@ -3,7 +3,7 @@
 
 import numpy
 
-def linear_scale(points, lower_bound, upper_bound):
+def linear(points, lower_bound, upper_bound):
     """Linearly scale a numpy array from the domain [0,1] to the range [lower,upper]
 
     Parameters
@@ -24,15 +24,15 @@ def linear_scale(points, lower_bound, upper_bound):
     ________
 
         >>> from numpy import *
-        >>> from varsens.scale import *
-        >>> linear_scale(array([0.5]*3), array([-100, -10, 1000]), array([100, 20, 2000]))
+        >>> from varsens import *
+        >>> scale.linear(array([0.5]*3), array([-100, -10, 1000]), array([100, 20, 2000]))
         array([    0.,     5.,  1500.])
         >>>
 
     """
     return points*(upper_bound - lower_bound) + lower_bound
 
-def power_scale(points, lower_bound, upper_bound):
+def power(points, lower_bound, upper_bound):
     """Power (exponentiate) scale a numpy array from the domain [0,1] to the range [lower,upper]
 
     Parameters
@@ -53,15 +53,15 @@ def power_scale(points, lower_bound, upper_bound):
     ________
 
         >>> from numpy import *
-        >>> from varsens.scale import *
-        >>> power_scale(array([0.5]*3), array([10, 100, 1000]), array([1000, 200, 2500]))
+        >>> from varsens import *
+        >>> scale.power(array([0.5]*3), array([10, 100, 1000]), array([1000, 200, 2500]))
         array([  100.        ,   141.42135624,  1414.21356237])
         >>>
 
     """
     return lower_bound*((upper_bound / lower_bound)**points)
 
-def percentage_scale(points, reference, percentage=50.0):
+def percentage(points, reference, percentage=50.0):
     """Linearly scale a numpy array from the domain [0,1] to the reference +/- percentage
 
     Parameters
@@ -81,16 +81,16 @@ def percentage_scale(points, reference, percentage=50.0):
     ________
 
         >>> from numpy import *
-        >>> from varsens.scale import *
-        >>> percentage_scale(array([0.333]*3), array([1, 10, 1000]), 50.0)
+        >>> from varsens import *
+        >>> scale.percentage(array([0.333]*3), array([1, 10, 1000]), 50.0)
         array([   0.833,    8.33 ,  833.   ])
         >>>
 
     """
     diff = percentage * reference / 100.0
-    return linear_scale(points, reference-diff, reference+diff)
+    return linear(points, reference-diff, reference+diff)
 
-def magnitude_scale(points, reference, orders=3.0, base=10.0):
+def magnitude(points, reference, orders=3.0, base=10.0):
     """Power scale a numpy array from the domain [0,1] to a power range given in orders of magnitude
 
     Parameters
@@ -112,12 +112,12 @@ def magnitude_scale(points, reference, orders=3.0, base=10.0):
     ________
 
         >>> from numpy import *
-        >>> from varsens.scale import *
-        >>> magnitude_scale(array([0.333]*3), array([1, 10, 1000]))
+        >>> from varsens import *
+        >>> scale.magnitude(array([0.333]*3), array([1, 10, 1000]))
         array([  0.09954054,   0.99540542,  99.54054174])
         >>>
 
     """
     factor = base ** orders
-    return power_scale(points, reference / factor, reference * factor)
+    return power(points, reference / factor, reference * factor)
 

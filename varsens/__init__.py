@@ -1,4 +1,4 @@
-from varsens.saltelli import *
+from varsens.saltelli import Varsens
 from varsens.scale    import *
 
-__all__ = ['saltelli', 'scale']
+__all__ = ['scale', 'Varsens']

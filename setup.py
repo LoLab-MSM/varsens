@@ -3,9 +3,11 @@ from setuptools import setup
 import distutils.cmd
 import sys, os, subprocess, traceback, re
 
+def get_version(): return '0.0.1'
+
 def main():
     setup(name             = 'varsens',
-          version          = '0.0.1',
+          version          = get_version(),
           description      = 'Python Variance Based Sensitivity Analysis',
           long_description = 'This package is to provide in Python a model independent method of doing Variance Based Sensitivity Analysis via the method of Saltelli.',
           author           = 'Shawn Garbett',

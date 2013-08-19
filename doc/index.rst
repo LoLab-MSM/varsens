@@ -17,6 +17,7 @@ Contents:
    :maxdepth: 3
 
    tutorial
+   modules
    index
 
 Indices and tables

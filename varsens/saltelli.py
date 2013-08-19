@@ -3,8 +3,52 @@ import numpy
 import sys
 
 class Varsens(object):
-    """The main variance sensitivity object which contains the core of the computation"""
-    
+    """The main variance sensitivity object which contains the core of the computation. It will
+        execute the objective function n*(2*k+2) times.
+        
+        Parameters
+        ----------
+        objective : function
+            a function that is passed k parameters resulting in a value or list of values
+            to evaluate it's sensitivity
+        scaling : function
+            A function that when passed an array of numbers k long from [0..1] scales them to the
+            desired range for the objective function. See varsens.scale for helpers.
+        k : int
+            Number of parameters that the objective function expects
+        n : int
+            Number of low discrepency draws to use to estimate the variance
+        verbose : bool
+            Whether or not to print progress in computation
+
+        Returns
+        -------
+        Varsens object. It will contain var_y, E_2, sens and sens_t.
+
+        Examples
+        ________
+            >>> from varsens    import *
+            >>> import numpy
+            >>> def gi_function(xi, ai): return (numpy.abs(4.0*xi-2.0)+ai) / (1.0+ai)
+            ... 
+            >>> def g_function(x, a): return numpy.prod([gi_function(xi, a[i]) for i,xi in enumerate(x)])
+            ... 
+            >>> def g_scaling(x): return x
+            ... 
+            >>> def g_objective(x): return g_function(x, [0, 0.5, 3, 9, 99, 99])
+            ... 
+            >>> v = Varsens(g_objective, g_scaling, 6, 1024, verbose=False)
+            >>> v.var_y
+            0.5713239774588339
+            >>> v.E_2
+            1.0040075966813939
+            >>> v.sens
+            array([ 0.56933972,  0.23787565,  0.03839997,  0.00579517,  0.00178795,
+                    0.00218105])
+            >>> v.sens_t
+            array([ 0.71851248,  0.37028261,  0.08488697,  0.03593117,  0.0278552 ,
+                    0.0290142 ])
+    """
     def __init__(self, objective, scaling, k, n, verbose=True):
         self.k         = k
         self.n         = n

@@ -36,9 +36,9 @@ copyright = u'2013, C. F. Lopez, S. P. Garbett'
 # |version| and |release|, also used in various other places throughout the
 # built documents.
 #
-import setup as pysb_setup
+import setup as varsens_setup
 # The full version, including alpha/beta/rc tags.
-release = pysb_setup.get_version()
+release = varsens_setup.get_version()
 # The short X.Y version.
 version = re.sub(r'-.*', '', release)
 

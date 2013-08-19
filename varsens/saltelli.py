@@ -6,11 +6,11 @@ class Varsens(object):
     """The main variance sensitivity object which contains the core of the computation"""
     
     def __init__(self, objective, scaling, k, n, verbose=True):
-        self.k = k
-        self.n = n
+        self.k         = k
+        self.n         = n
         self.objective = objective
-        self.scaling = scaling
-        self.verbose = verbose
+        self.scaling   = scaling
+        self.verbose   = verbose
 
         if verbose: print "Generating Low Discrepancy Sequence"
 
@@ -31,7 +31,7 @@ class Varsens(object):
     def move_spinner(self,i):
         """A function to create a text spinner during long computations"""
         spin = ("|", "/","-", "\\")
-        print "[%s] %d\r"%(spin[i%4],i),
+        print " [%s] %d\r"%(spin[i%4],i),
         sys.stdout.flush()
 
     def generate_N_j(self, M_1, M_2):
@@ -55,58 +55,70 @@ class Varsens(object):
         (low-discrepancy sequences)
         '''
 
+        # Determine objective return type
+        test = self.objective(M_1[0])
         # assign the arrays that will hold fM_1, fM_2 and fN_j_n
-        fM_1  = numpy.zeros(self.n)
-        fM_2  = numpy.zeros(self.n)
-        fN_j  = numpy.zeros([self.k] + [self.n]) # matrix is of shape (nparam, nsamples)
-        fN_nj = numpy.zeros([self.k] + [self.n])
+        try:
+            l = len(test)
+            fM_1  = numpy.zeros([self.n] + [l])
+            fM_2  = numpy.zeros([self.n] + [l])
+            fN_j  = numpy.zeros([self.k] + [self.n] + [l])
+            fN_nj = numpy.zeros([self.k] + [self.n] + [l])
+        except TypeError:
+            # assign the arrays that will hold fM_1, fM_2 and fN_j_n
+            fM_1  = numpy.zeros(self.n)
+            fM_2  = numpy.zeros(self.n)
+            fN_j  = numpy.zeros([self.k] + [self.n]) # matrix is of shape (nparam, nsamples)
+            fN_nj = numpy.zeros([self.k] + [self.n])
 
         # First process the A and B matrices
         if self.verbose: print "Processing f(M_1):"
-        for i in range(M_1.shape[0]):
+        for i in range(self.n):
             fM_1[i]   = self.objective(M_1[i])
             if self.verbose: self.move_spinner(i)
 
         if self.verbose: print "Processing f(M_2):"
-        for i in range(M_2.shape[0]):
+        for i in range(self.n):
             fM_2[i]   = self.objective(M_2[i])
             if self.verbose: self.move_spinner(i)
 
         if self.verbose: print "Processing f(N_j)"
-        for i in range(N_j.shape[0]):
+        for i in range(self.k):
             if self.verbose: print " * parameter %d"%i
-            for j in range(N_j.shape[1]):
+            for j in range(self.n):
                 fN_j[i][j] = self.objective(N_j[i][j])
                 if self.verbose: self.move_spinner(j)
 
         if self.verbose: print "Processing f(N_nj)"
-        for i in range(N_j.shape[0]):
+        for i in range(self.k):
             if self.verbose: print " * parameter %d"%i
-            for j in range(N_j.shape[1]):
+            for j in range(self.n):
                 fN_nj[i][j] = self.objective(N_nj[i][j])
                 if self.verbose: self.move_spinner(j)
 
         return fM_1, fM_2, fN_j, fN_nj
 
     def compute_varsens(self, fM_1, fM_2, fN_j, fN_nj):
-        self.k   = fN_j.shape[0] # should be the number of parameters
-        self.n = fN_j.shape[1] # should be the number of samples from the original matrix
-
         self.E_2 = sum(fM_1*fM_2) / self.n      # Eq (21)
 
         # Estimate U_j and U_-j values and store them 
-        U_j  = numpy.sum(fM_1 * fN_j,  axis=1) / (self.n - 1)  # Eq (12)
-        U_nj = numpy.sum(fM_1 * fN_nj, axis=1) / (self.n - 1)  # Eq (unnumbered one after 18)
+        self.U_j  = numpy.sum(fM_1 * fN_j,  axis=1) / (self.n - 1)  # Eq (12)
+        self.U_nj = numpy.sum(fM_1 * fN_nj, axis=1) / (self.n - 1)  # Eq (unnumbered one after 18)
 
         #estimate V(y) from fM_1 and fM_2, paper uses only fM_1, this is a better estimate
         self.var_y = (numpy.var(fM_1, axis=0, ddof=1)+numpy.var(fM_2, axis=0, ddof=1))/2.0
 
         #allocate the S_i and ST_i arrays
-        self.sens   = numpy.zeros(self.k)
-        self.sens_t = numpy.zeros(self.k)
+        if len(self.U_j.shape) == 1:
+            self.sens   = numpy.zeros(self.k)
+            self.sens_t = numpy.zeros(self.k)
+        else:
+            self.sens   = numpy.zeros([self.k]+[self.U_j.shape[1]])
+            self.sens_t = numpy.zeros([self.k]+[self.U_j.shape[1]])
+        
 
         # now get the S_i and ST_i, Eq (27) & Eq (28)
         for j in range(self.k):
-            self.sens[j]   =       ((U_j[j] - self.E_2) / self.var_y)
-            self.sens_t[j] = 1.0 - ((U_nj[j]- self.E_2) / self.var_y)
+            self.sens[j]   =       ((self.U_j[j] - self.E_2) / self.var_y)
+            self.sens_t[j] = 1.0 - ((self.U_nj[j]- self.E_2) / self.var_y)
 

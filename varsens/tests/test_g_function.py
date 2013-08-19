@@ -31,3 +31,17 @@ def test_g_function():
 
     for i in range(v.k):
         assert_almost_equal(truth[i], estimate[i], places=2)
+
+def g_double_objective(x): return [g_function(x, model), g_function(x, model[::-1])]
+
+def test_double_g_function():
+    # Analytical answer, Eq (34) divided by V(y), matches figure
+    v = Varsens(g_double_objective, g_scaling, 6, 1024*10, verbose=False)
+    estimate = v.sens * v.var_y
+    print estimate
+    truth    = 1.0/(3.0*((numpy.array(model) + 1.0)**2.0))
+
+    for i in range(v.k):
+        assert_almost_equal(truth[i], estimate[i][0],   places=2)
+        assert_almost_equal(truth[i], estimate[5-i][1], places=2)
+

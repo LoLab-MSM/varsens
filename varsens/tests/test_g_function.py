@@ -33,9 +33,9 @@ def g_truth_t(model, i):
     k = len(model)
     others = range(k)
     others.remove(i)
-    for j in range(1,k):
-        for k in itertools.combinations(others, j):
-            result += numpy.prod(x[numpy.array(k)])
+    for j in range(k):
+        for m in itertools.combinations(others, j+1):
+            result += numpy.prod(x[numpy.array(m)])
     return x[i]*result
 
 def g_var(model):
@@ -43,17 +43,21 @@ def g_var(model):
     result = 0.0
     k = len(model)
     all = range(k)
-    for j in range(1,k):
-        for k in itertools.combinations(all, j):
-            result += numpy.prod(x[numpy.array(k)])
+    for j in range(k):
+        for m in itertools.combinations(all, j+1):
+            result += numpy.prod(x[numpy.array(m)])
     return result
 
 def test_g_function():
     # Analytical answer, Eq (34) divided by V(y), matches figure
     v = Varsens(g_objective, g_scaling, 6, 1024*10, verbose=False)
+
+    # Remove effect of estimating variance
     estimate   = v.sens   * v.var_y
     estimate_2 = v.sens_2 * v.var_y
     estimate_t = v.sens_t * v.var_y
+
+    # Get the truth
     truth      = g_truth(model)
 
     assert_almost_equal(g_var(model), v.var_y, places=2)

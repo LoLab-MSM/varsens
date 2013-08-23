@@ -9,6 +9,10 @@ def move_spinner(self, i):
     sys.stdout.flush()
 
 class Sample(object):
+    ''' An object containing the definition of the sample space, as well as the 
+        actual matrices M_1 and M_2. Generated via Halton low-discrepency
+        sequence
+    '''
     def __init__(self, k, n, scaling, verbose = True):
         self.k = k
         self.n = n
@@ -53,6 +57,10 @@ class Objective(object):
         self.sample         = sample
         self.objective_func = objective_func
         self.verbose        = verbose
+        self.fM_1           = None
+        self.fM_2           = None
+        self.fN_j           = None
+        self.fN_nj          = None
 
         if objective_func == None: return # If no function specified, then user will fill
 
@@ -105,16 +113,21 @@ class Varsens(object):
         
         Parameters
         ----------
-        objective : function
-            a function that is passed k parameters resulting in a value or list of values
-            to evaluate it's sensitivity
-        scaling : function
-            A function that when passed an array of numbers k long from [0..1] scales them to the
-            desired range for the objective function. See varsens.scale for helpers.
+        objective : function or Objective
+            a function that is passed k parameters resulting in a value or 
+            list of values to evaluate it's sensitivity, or a pre-evaluated set
+            of objectives in an Objective object
+        scaling_func : function
+            A function that when passed an array of numbers k long from [0..1]
+            scales them to the desired range for the objective function. See
+            varsens.scale for helpers.
         k : int
             Number of parameters that the objective function expects
         n : int
             Number of low discrepency draws to use to estimate the variance
+        sample : Sample
+            A predefined sample. If specified, the k, n and scaling_func variables
+            are ignored, and this is used as the sample
         verbose : bool
             Whether or not to print progress in computation
 
@@ -146,16 +159,28 @@ class Varsens(object):
             array([  7.01277445e-01,   3.54584746e-01,   5.86321223e-02,
                      9.64126174e-03,   6.45996005e-04,   9.78965580e-04])
     '''
-    def __init__(self, objective, scaling, k, n, verbose=True):
-        self.k              = k
-        self.n              = n
-        self.verbose        = verbose
+    def __init__(self, objective, scaling_func=None, k=None, n=None, sample=None, verbose=True):
+        self.verbose    = verbose
 
-        # Generate sample/re-sample space
-        self.sample    = Sample(k, n, scaling, verbose)
+        # If the sample object if predefined use it
+        if isinstance(sample, Sample):
+            self.sample = sample
+            self.k      = sample.k
+            self.n      = sample.n
+        elif k != None and n != None and scaling_func != None: # Create sample from space definition
+            self.k      = k
+            self.n      = n
+            self.sample = Sample(k, n, scaling_func, verbose)
+        elif not isinstance(objective, Objective):
+            # No sample provided, no sample space definition provided, no pre-evaluated objective provided
+            # Impossible to compute variable sensitivity
+            raise ValueError("Must specify sample, (k,n,scaling_func), or Objective object")
 
         # Execute the model to determine the objective function
-        self.objective = Objective(k, n, self.sample, objective, verbose)
+        if isinstance(objective, Objective):
+            self.objective = Objective
+        else: # The object is predefined.
+            self.objective = Objective(k, n, self.sample, objective, verbose)
 
         # From the model executions, compute the variable sensitivity
         self.compute_varsens()

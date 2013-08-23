@@ -13,9 +13,6 @@ def gi_function(xi, ai):
 def g_function(x, a):
     return numpy.prod([gi_function(xi, a[i]) for i,xi in enumerate(x)])
 
-def g_scaling(x):
-    return x # This is defined on the range [0..1]
-
 model = [0, 0.5, 3, 9, 99, 99]
 
 def g_objective(x): return g_function(x, model)
@@ -27,16 +24,20 @@ def g_truth_2(model, i, j):
     x = g_truth(model)
     return x[i]+x[j]+x[i]*x[j]
 
-def g_truth_t(model, i):
+def g_truth_vnc(model, l):
     x = g_truth(model)
-    result = 1.0
+    result = 0.0
     k = len(model)
     others = range(k)
-    others.remove(i)
+    for i in l: others.remove(i)
     for j in range(k):
         for m in itertools.combinations(others, j+1):
             result += numpy.prod(x[numpy.array(m)])
-    return x[i]*result
+    return result
+
+def g_truth_t(model, i):
+    x = g_truth(model)
+    return x[i]*(1.0+g_truth_vnc(model, [i]))
 
 def g_var(model):
     x = g_truth(model)
@@ -50,12 +51,13 @@ def g_var(model):
 
 def test_g_function():
     # Analytical answer, Eq (34) divided by V(y), matches figure
-    v = Varsens(g_objective, g_scaling, 6, 1024*10, verbose=False)
+    v = Varsens(g_objective, lambda x: x, 6, 1024*10, verbose=False)
 
     # Remove effect of estimating variance
-    estimate   = v.sens   * v.var_y
-    estimate_2 = v.sens_2 * v.var_y
-    estimate_t = v.sens_t * v.var_y
+    estimate    = v.sens    * v.var_y
+    estimate_2  = v.sens_2  * v.var_y
+    estimate_2n = v.sens_2n * v.var_y
+    estimate_t  = v.sens_t  * v.var_y
 
     # Get the truth
     truth      = g_truth(model)
@@ -67,13 +69,16 @@ def test_g_function():
         assert_almost_equal(truth[i],            estimate[i],   places=2)
         assert_almost_equal(g_truth_t(model, i), estimate_t[i], places=2)
         for j in range(i+1, v.k):
-            assert_almost_equal(g_truth_2(model, i, j), estimate_2[i,j], places=2)
+            assert_almost_equal(g_truth_2(model, i, j),     estimate_2[i,j],  places=2)
+            assert_almost_equal(g_truth_vnc(model, [i, j]), estimate_2n[i,j], places=2)
 
+# This tests when an objective function returns multiple values
+# This combines the g_function result, with it's reversed model of results
 def g_double_objective(x): return [g_function(x, model), g_function(x, model[::-1])]
 
 def test_double_g_function():
     # Analytical answer, Eq (34) divided by V(y), matches figure
-    v = Varsens(g_double_objective, g_scaling, 6, 1024*10, verbose=False)
+    v = Varsens(g_double_objective, lambda x: x, 6, 1024*10, verbose=False)
     estimate = v.sens * v.var_y
     print estimate
     truth    = g_truth(model)

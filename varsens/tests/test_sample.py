@@ -63,4 +63,13 @@ def test_expected():
     assert_almost_equal(numpy.sum(x.N_j) / x.n / x.k / x.k, 0.5, places=2)
     assert_almost_equal(numpy.sum(x.N_nj)/ x.n / x.k / x.k, 0.5, places=2)
 
-# FIXME: Need a test showing lack of linear correlation, to complete assumptions of low discrepency
+def test_flat():
+    k = 5
+    n = 13
+
+    s = Sample(k, n, lambda x: x, False)
+
+    assert_equal(s.flat().shape[0], n*(2*k+2))
+    assert_equal(s.flat().shape[1], k)
+    assert_equal(numpy.sum(s.M_1[0]),        numpy.sum(s.flat()[0] ))
+    assert_equal(numpy.sum(s.N_nj[k-1][-1]), numpy.sum(s.flat()[-1]))

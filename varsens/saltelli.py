@@ -2,10 +2,10 @@ import ghalton
 import numpy
 import sys
 
-def move_spinner(self, i):
+def move_spinner(i):
     '''A function to create a text spinner during long computations'''
     spin = ("|", "/","-", "\\")
-    print " [%s] %d\r"%(spin[i%4],i),
+    print " [%s] %d\r" % (spin[i%4],i)
     sys.stdout.flush()
 
 class Sample(object):
@@ -38,13 +38,26 @@ class Sample(object):
         Tarantola Global Sensitivity Analysis'''
 
         # allocate the space for the C matrix
-        N_j = numpy.array([M_2]*self.k) 
+        N_j = numpy.array([M_2]*self.k)
 
         # Now we have nparams copies of M_2. replace the i_th column of N_j with the i_th column of M_1
         for i in range(self.k):
             N_j[i,:,i] = M_1[:,i]
-
         return N_j
+
+    def flat(self):
+        '''Return the sample space as an array n*(2*k+2) long, containing arrays k long'''
+        x = numpy.append(self.M_1, self.M_2, axis=0)
+        for i in range(self.k):
+            x = numpy.append(x, self.N_j[i], axis=0)
+        for i in range(self.k):
+            x = numpy.append(x, self.N_nj[i], axis=0)
+        return x
+
+    def export(self, prefix, postfix, blocksize):
+        f = self.flat()
+        for b in range(int(numpy.ceil(1.0*len(f) / blocksize))):
+            numpy.savetxt("%s%d%s" % (prefix, b+1, postfix), f[b*blocksize : (b+1)*blocksize])
 
 class Objective(object):
     ''' Function parmeval calculates the fM_1, fM_2, and fN_j_i arrays needed for variance-based
@@ -53,7 +66,7 @@ class Objective(object):
     '''
     def __init__(self, k, n, sample, objective_func, verbose=True):
         self.k              = k
-        self.n              = n
+        self.n              = needed
         self.sample         = sample
         self.objective_func = objective_func
         self.verbose        = verbose

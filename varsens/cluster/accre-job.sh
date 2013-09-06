@@ -7,4 +7,6 @@
 
 # $PBS_ARRAYID is the number of the block (starts from 1)
 
-python run_egfr.py $PBS_ARRAYID
+cd egfr
+
+python varsens/compute_objective.py varsens/samples/egrf-batch-$PBS_ARRAYID.csv

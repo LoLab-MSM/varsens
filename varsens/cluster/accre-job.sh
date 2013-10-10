@@ -3,7 +3,7 @@
 #PBS -l walltime=1:00:00
 #PBS -l mem=1GB
 #PBS -j oe
-#PBS -l group_list=lola
+#PBS -l group=lola
 
 # $PBS_ARRAYID is the number of the block (starts from 1)
 

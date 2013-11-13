@@ -247,7 +247,7 @@ class Varsens(object):
         if isinstance(objective, Objective):
             self.objective = objective
         else: # The object is predefined.
-            self.objective = Objective(k, n, self.sample, objective, verbose)
+            self.objective = Objective(self.k, self.n, self.sample, objective, verbose)
 
         # From the model executions, compute the variable sensitivity
         self.compute_varsens()

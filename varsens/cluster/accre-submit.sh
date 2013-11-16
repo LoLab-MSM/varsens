@@ -4,16 +4,16 @@
 usage()
 {
 cat << EOF
-usage: $0 script blocks
+usage: $0 blocks
 
 EOF
 }
 
-if [[ $# -lt 2 ]]; then
+if [[ $# -lt 1 ]]; then
 	usage
 	exit 1
 fi
-if [[ $# -gt 2 ]]; then
+if [[ $# -gt 1 ]]; then
 	usage
 	exit 1
 fi
@@ -24,5 +24,5 @@ HERE=`pwd`
 mkdir -p $HERE/results
 
 # Submit jobs as a multiple of blocks
-qsub -o $HERE/results -N PySB -t 1-$BLOCKS accre-job.sh
+qsub -o $HERE/results -N PySB -t $BLOCKS accre-job.sh
 

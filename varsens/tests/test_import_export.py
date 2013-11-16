@@ -51,10 +51,6 @@ def g_var(model):
             result += numpy.prod(x[numpy.array(m)])
     return result
     
-def setup_sample(tmpdir, k, n):
-    sample = Sample(k, n, lambda x: x)
-    sample.export(tmpdir+"/batch-", ".csv", 200)
-
 def run_objectives(tmpdir, b):
     for i in range(b):
         result = []
@@ -63,9 +59,8 @@ def run_objectives(tmpdir, b):
             result.append(g_objective(s))
         numpy.savetxt(tmpdir+("/obj-%d.csv" % (i+1)), numpy.array(result))
 
-def load_results(tmpdir, k, n, b):
-    s = Sample(k, n, None)
-    o = Objective(k, n, s, None)
+def load_results(tmpdir, s, b):
+    o = Objective(s.k, s.n, s, None)
     o.load(tmpdir+"/obj-", ".csv", b)
     # Now compute results from batch
     v = Varsens(o, sample=s)
@@ -80,12 +75,15 @@ def test_import_export():
     n = 1024
     
     # Analytical answer, Eq (34) divided by V(y), matches figure
-    v = Varsens(g_objective, lambda x: x, 6, 1024, verbose=False)
+    s = Sample(k, n, lambda x: x)
+    v = Varsens(g_objective, verbose=False, sample=s)
     
     # Do a batch run, simulating ACCRE
-    setup_sample(tmpdir, k, n)
+    s.export(tmpdir+"/batch-", ".csv", 200)
     run_objectives(tmpdir, 72)
-    v2 = load_results(tmpdir, k, n, 72)
+    v2 = load_results(tmpdir, s, 72)
+
+    shutil.rmtree(tmpdir)
     
     # Test the results
     assert_almost_equal(v.var_y, v2.var_y)
@@ -97,6 +95,5 @@ def test_import_export():
             assert_almost_equal(v.sens_2[i][j],  v2.sens_2[i][j] )
             assert_almost_equal(v.sens_2n[i][j], v2.sens_2n[i][j])
 
-    shutil.rmtree(tmpdir)
 
 

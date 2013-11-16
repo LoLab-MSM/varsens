@@ -28,6 +28,9 @@ class Sample(object):
         x = numpy.array(seq.get(self.n))
         self.M_1 = self.scaling(x[...,     0:self.k    ])
         self.M_2 = self.scaling(x[...,self.k:(2*self.k)])
+        
+        # This little shuffle enormously improves the performance
+        numpy.random.shuffle(self.M_2) # Eliminate any correlation
 
         # Generate the sample/re-sample permutations
         self.N_j  = self.generate_N_j(self.M_1, self.M_2) # See Eq (11)
@@ -213,16 +216,12 @@ class Varsens(object):
             >>> def g_objective(x): return g_function(x, [0, 0.5, 3, 9, 99, 99])
             ... 
             >>> v = Varsens(g_objective, g_scaling, 6, 1024, verbose=False)
-            >>> v.var_y
-            0.57105531939783061
-            >>> v.E_2
-            1.0040075966813939
-            >>> v.sens
-            array([ 0.58509195,  0.25311583,  0.03754574,  0.00752022,  0.00176028,
-                    0.00177371])
-            >>> v.sens_t
-            array([  7.01277445e-01,   3.54584746e-01,   5.86321223e-02,
-                     9.64126174e-03,   6.45996005e-04,   9.78965580e-04])
+            >>> v.var_y # doctest: +ELLIPSIS
+            0.5...
+            >>> v.sens # doctest: +ELLIPSIS
+            array([...])
+            >>> v.sens_t # doctest: +ELLIPSIS
+            array([...])
     '''
     def __init__(self, objective, scaling_func=None, k=None, n=None, sample=None, verbose=True):
         self.verbose    = verbose
@@ -260,7 +259,8 @@ class Varsens(object):
         n = len(self.objective.fM_1)
         self.E_2 = sum(self.objective.fM_1*self.objective.fM_2) / n      # Eq (21)
 
-        #estimate V(y) from self.objective.fM_1 and self.objective.fM_2, paper uses only self.objective.fM_1, this is a better estimate
+        #estimate V(y) from self.objective.fM_1 and self.objective.fM_2
+        # paper uses only self.objective.fM_1, this is a better estimator
         self.var_y = numpy.var(numpy.concatenate((self.objective.fM_1, self.objective.fM_2), axis=0), axis=0, ddof=1)
 
         # Estimate U_j and U_-j values and store them, but by double method
@@ -297,3 +297,8 @@ class Varsens(object):
         self.sens_2n -= self.E_2
         self.sens_2n /= self.var_y
 
+        # Numerical error can make some values exceed what is sensible
+        #self.sens    = numpy.clip(self.sens,    0, 1)
+        #self.sens_t  = numpy.clip(self.sens_t,  0, 1)
+        #self.sens_2  = numpy.clip(self.sens_2,  0, 1)
+        #self.sens_2n = numpy.clip(self.sens_2n, 0, 1)

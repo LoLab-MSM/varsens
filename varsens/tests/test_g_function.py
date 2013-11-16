@@ -51,7 +51,7 @@ def g_var(model):
 
 def test_g_function():
     # Analytical answer, Eq (34) divided by V(y), matches figure
-    v = Varsens(g_objective, lambda x: x, 6, 1024*10, verbose=False)
+    v = Varsens(g_objective, lambda x: x, 6, 1024*50, verbose=False)
 
     # Remove effect of estimating variance
     estimate    = v.sens    * v.var_y
@@ -78,7 +78,7 @@ def g_double_objective(x): return [g_function(x, model), g_function(x, model[::-
 
 def test_double_g_function():
     # Analytical answer, Eq (34) divided by V(y), matches figure
-    v = Varsens(g_double_objective, lambda x: x, 6, 1024*10, verbose=False)
+    v = Varsens(g_double_objective, lambda x: x, 6, 1024*50, verbose=False)
     estimate = v.sens * v.var_y
     print estimate
     truth    = g_truth(model)

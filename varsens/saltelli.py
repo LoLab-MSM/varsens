@@ -258,18 +258,25 @@ class Varsens(object):
 
         n = len(self.objective.fM_1)
         self.E_2 = sum(self.objective.fM_1*self.objective.fM_2) / n      # Eq (21)
+        #self.E_2 = sum(self.objective.fM_1) / n # Eq(22)
+        #self.E_2 *= self.E_2
+        
 
         #estimate V(y) from self.objective.fM_1 and self.objective.fM_2
         # paper uses only self.objective.fM_1, this is a better estimator
         self.var_y = numpy.var(numpy.concatenate((self.objective.fM_1, self.objective.fM_2), axis=0), axis=0, ddof=1)
 
+        if not numpy.all(numpy.sqrt(self.E_2) > 1.96*numpy.sqrt(self.var_y / n)):
+            print "Excessive variance in estimation of E^2"
+            raise ArithmeticError
+
         # Estimate U_j and U_-j values and store them, but by double method
         self.U_j  =  numpy.sum(self.objective.fM_1 * self.objective.fN_j,  axis=1) / (n - 1)  # Eq (12)
-        self.U_j  += numpy.sum(self.objective.fM_2 * self.objective.fN_nj, axis=1) / (n - 1) 
-        self.U_j  /= 2.0                                                              
+       # self.U_j  += numpy.sum(self.objective.fM_2 * self.objective.fN_nj, axis=1) / (n - 1) 
+        #self.U_j  /= 2.0                                                              
         self.U_nj =  numpy.sum(self.objective.fM_1 * self.objective.fN_nj, axis=1) / (n - 1)  # Eq (unnumbered one after 18)
-        self.U_nj += numpy.sum(self.objective.fM_2 * self.objective.fN_j,  axis=1) / (n - 1) 
-        self.U_nj /= 2.0
+        #self.U_nj += numpy.sum(self.objective.fM_2 * self.objective.fN_j,  axis=1) / (n - 1) 
+        #self.U_nj /= 2.0
         
         #allocate the S_i and ST_i arrays
         if len(self.U_j.shape) == 1:
@@ -298,7 +305,7 @@ class Varsens(object):
         self.sens_2n /= self.var_y
 
         # Numerical error can make some values exceed what is sensible
-        #self.sens    = numpy.clip(self.sens,    0, 1)
-        #self.sens_t  = numpy.clip(self.sens_t,  0, 1)
-        #self.sens_2  = numpy.clip(self.sens_2,  0, 1)
-        #self.sens_2n = numpy.clip(self.sens_2n, 0, 1)
+        # self.sens    = numpy.clip(self.sens,    0, 1)
+        # self.sens_t  = numpy.clip(self.sens_t,  0, 1e6)
+        # self.sens_2  = numpy.clip(self.sens_2,  0, 1)
+        # self.sens_2n = numpy.clip(self.sens_2n, 0, 1)

@@ -1,6 +1,7 @@
 import ghalton
 import numpy
 import sys
+import random
 
 def move_spinner(i):
     '''A function to create a text spinner during long computations'''
@@ -36,6 +37,8 @@ class Sample(object):
             x = numpy.loadtxt(open(loadFile, "rb"), delimiter=",")
             self.M_1 = self.scaling(x[     0:self.n,    ...])
             self.M_2 = self.scaling(x[self.n:(2*self.n),...])
+            random.seed(1)
+            random.shuffle(self.M_2)
 
         # Generate the sample/re-sample permutations
         self.N_j  = self.generate_N_j(self.M_1, self.M_2) # See Eq (11)

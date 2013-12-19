@@ -13,6 +13,25 @@ class Sample(object):
     ''' An object containing the definition of the sample space, as well as the 
         actual matrices M_1 and M_2. Generated via Halton low-discrepency
         sequence
+        
+        Parameters
+        ----------
+        k : int
+            Number of parameters that the objective function expects
+        n : int
+            Number of low discrepency draws to use to estimate the variance
+        scaling : function
+            A function that when passed an array of numbers k long from [0..1]
+            scales them to the desired range for the objective function. See
+            varsens.scale for helpers.
+        verbose : bool
+            Whether or not to print progress in computation
+        loadFile : string
+            Instead of generating the sample space using the ghalton library, the
+            sample space can be loaded from a csv file specified by this argument.
+            See the additional quantlib directory
+            in the varsens package for some C++ quantlib sample space generating code to
+            make a sample file.
     '''
     def __init__(self, k, n, scaling, verbose = True, loadFile = None):
         self.k = k
@@ -25,20 +44,20 @@ class Sample(object):
         if self.verbose: print "Generating Low Discrepancy Sequence"
         
         if loadFile == None:
-            seq = ghalton.Halton(self.k*2)
+            seq = ghalton.Halton(self.k)
             seq.get(20*self.k) # Remove initial linear correlated points
             x = numpy.array(seq.get(self.n))
-            self.M_1 = self.scaling(x[...,     0:self.k    ])
-            self.M_2 = self.scaling(x[...,self.k:(2*self.k)])
-            
-            # This little shuffle enormously improves the performance
-            numpy.random.shuffle(self.M_2) # Eliminate any correlation
+            self.M_1 = self.scaling(x[     0:self.n,    ...])
+            self.M_2 = self.scaling(x[self.n:(2*self.n),...])
         else:
             x = numpy.loadtxt(open(loadFile, "rb"), delimiter=",")
             self.M_1 = self.scaling(x[     0:self.n,    ...])
             self.M_2 = self.scaling(x[self.n:(2*self.n),...])
-            random.seed(1)
-            random.shuffle(self.M_2)
+
+        # This is the magic trick that makes it all work, not mentioned
+        # in Saltelli's papers.
+        random.seed(1)
+        random.shuffle(self.M_2) # Eliminate any correlation
 
         # Generate the sample/re-sample permutations
         self.N_j  = self.generate_N_j(self.M_1, self.M_2) # See Eq (11)
@@ -76,6 +95,20 @@ class Objective(object):
     ''' Function parmeval calculates the fM_1, fM_2, and fN_j_i arrays needed for variance-based
     global sensitivity analysis as prescribed by Saltelli and derived from the work by Sobol
     (low-discrepancy sequences)
+    
+    Parameters
+    ----------
+    k : int
+        Number of parameters that the objective function expects
+    n : int
+        Number of low discrepency draws to use to estimate the variance
+    sample : Sample
+        The sample object containing the sample space for the computation.
+    objective_func : function
+        Will be passed each point in the sample space and must return a value, or vector of values
+        for multi-objective computation.
+    verbose : bool
+        Whether or not to print status of computation
     '''
     def __init__(self, k, n, sample, objective_func, verbose=True):
         self.k              = k

@@ -3,7 +3,7 @@ from setuptools import setup
 import distutils.cmd
 import sys, os, subprocess, traceback, re
 
-def get_version(): return '0.0.4'
+def get_version(): return '0.0.5'
 
 def main():
     setup(name             = 'varsens',

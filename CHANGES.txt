@@ -2,3 +2,4 @@ v0.0.1, 2013-08-15 -- Initial release.
 v0.0.2, 2013-12-16 -- Added Loader for externally geneated sample files
 v0.0.3, 2013-12-19 -- Added example, fixed Halton generation.
 v0.0.4, 2013-12-20 -- Fixed bug in Halton generation
+v0.0.5, 2013-12-20 -- Fixed bug in analysis

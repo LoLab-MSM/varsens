@@ -44,20 +44,19 @@ class Sample(object):
         if self.verbose: print "Generating Low Discrepancy Sequence"
         
         if loadFile == None:
-            seq = ghalton.Halton(self.k*2)
+            seq = ghalton.Halton(self.k)
             seq.get(20*self.k) # Remove initial linear correlated points
-            x = numpy.array(seq.get(self.n))
-            self.M_1 = self.scaling(x[...,     0:self.k    ])
-            self.M_2 = self.scaling(x[...,self.k:(2*self.k)])
+            x = numpy.array(seq.get(2*self.n))
         else:
             x = numpy.loadtxt(open(loadFile, "rb"), delimiter=",")
-            self.M_1 = self.scaling(x[     0:self.n,    ...])
-            self.M_2 = self.scaling(x[self.n:(2*self.n),...])
+            
+        self.M_1 = self.scaling(x[     0:self.n,    ...])
+        self.M_2 = self.scaling(x[self.n:(2*self.n),...])
 
         # This is the magic trick that makes it all work, not mentioned
         # in Saltelli's papers.
         random.seed(1)
-        random.shuffle(self.M_2) # Eliminate any correlation
+        numpy.random.shuffle(self.M_2) # Eliminate any correlation
 
         # Generate the sample/re-sample permutations
         self.N_j  = self.generate_N_j(self.M_1, self.M_2) # See Eq (11)
@@ -310,6 +309,7 @@ class Varsens(object):
         #if not numpy.all(numpy.sqrt(numpy.abs(self.E_2)) > 1.96*numpy.sqrt(self.var_y / n)):
         #    print "Excessive variance in estimation of E^2"
         #    raise ArithmeticError
+        
 
         # Estimate U_j and U_-j values and store them, but by double method
         self.U_j  =  numpy.sum(self.objective.fM_1 * self.objective.fN_j,  axis=1) / (n - 1)  # Eq (12)
@@ -329,9 +329,9 @@ class Varsens(object):
 
         # now get the S_i and ST_i, Eq (27) & Eq (28)
         for j in range(self.k):
-            self.sens[j]   = (self.U_j[j] ) / self.var_y
-            self.sens_t[j] = 1.0 - ((self.U_nj[j]) / self.var_y)
-
+            self.sens[j]   = (self.U_j[j] - self.E_2) / self.var_y
+            self.sens_t[j] = 1.0 - ((self.U_nj[j]- self.E_2) / self.var_y)
+ 
         # Compute 2nd order terms (from double estimates)
         self.sens_2  =  numpy.tensordot(self.objective.fN_nj, self.objective.fN_j,  axes=([1],[1]))
         self.sens_2  += numpy.tensordot(self.objective.fN_j,  self.objective.fN_nj, axes=([1],[1]))

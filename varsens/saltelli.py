@@ -44,11 +44,11 @@ class Sample(object):
         if self.verbose: print "Generating Low Discrepancy Sequence"
         
         if loadFile == None:
-            seq = ghalton.Halton(self.k)
+            seq = ghalton.Halton(self.k*2)
             seq.get(20*self.k) # Remove initial linear correlated points
             x = numpy.array(seq.get(self.n))
-            self.M_1 = self.scaling(x[     0:self.n,    ...])
-            self.M_2 = self.scaling(x[self.n:(2*self.n),...])
+            self.M_1 = self.scaling(x[...,     0:self.k    ])
+            self.M_2 = self.scaling(x[...,self.k:(2*self.k)])
         else:
             x = numpy.loadtxt(open(loadFile, "rb"), delimiter=",")
             self.M_1 = self.scaling(x[     0:self.n,    ...])
@@ -313,11 +313,11 @@ class Varsens(object):
 
         # Estimate U_j and U_-j values and store them, but by double method
         self.U_j  =  numpy.sum(self.objective.fM_1 * self.objective.fN_j,  axis=1) / (n - 1)  # Eq (12)
-       # self.U_j  += numpy.sum(self.objective.fM_2 * self.objective.fN_nj, axis=1) / (n - 1) 
-        #self.U_j  /= 2.0                                                              
+        self.U_j  += numpy.sum(self.objective.fM_2 * self.objective.fN_nj, axis=1) / (n - 1) 
+        self.U_j  /= 2.0                                                              
         self.U_nj =  numpy.sum(self.objective.fM_1 * self.objective.fN_nj, axis=1) / (n - 1)  # Eq (unnumbered one after 18)
-        #self.U_nj += numpy.sum(self.objective.fM_2 * self.objective.fN_j,  axis=1) / (n - 1) 
-        #self.U_nj /= 2.0
+        self.U_nj += numpy.sum(self.objective.fM_2 * self.objective.fN_j,  axis=1) / (n - 1) 
+        self.U_nj /= 2.0
         
         #allocate the S_i and ST_i arrays
         if len(self.U_j.shape) == 1:

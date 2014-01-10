@@ -88,7 +88,7 @@ class Sample(object):
     def export(self, prefix, postfix, blocksize):
         f = self.flat()
         for b in range(int(numpy.ceil(1.0*len(f) / blocksize))):
-            numpy.savetxt("%s%d%s" % (prefix, b+1, postfix), f[b*blocksize : (b+1)*blocksize])
+            numpy.savetxt("%s%d%s" % (prefix, b+1, postfix), f[b*blocksize : (b+1)*blocksize], delimiter=",")
 
 class Objective(object):
     ''' Function parmeval calculates the fM_1, fM_2, and fN_j_i arrays needed for variance-based
@@ -109,12 +109,13 @@ class Objective(object):
     verbose : bool
         Whether or not to print status of computation
     '''
-    def __init__(self, k, n, sample, objective_func, verbose=True):
+    def __init__(self, k, n, sample, objective_func, verbose=True, processing=True):
         self.k              = k
         self.n              = n
         self.sample         = sample
         self.objective_func = objective_func
         self.verbose        = verbose
+	self.processing     = processing
         self.fM_1           = None
         self.fM_2           = None
         self.fN_j           = None
@@ -139,31 +140,45 @@ class Objective(object):
             self.fN_j  = numpy.zeros([self.k] + [self.n]) # matrix is of shape (nparam, nsamples)
             self.fN_nj = numpy.zeros([self.k] + [self.n])
 
-        # First process the A and B matrices
-        if self.verbose: print "Processing f(M_1):"
-        self.fM_1[0] = test # Save first execution
-        for i in range(1,self.n):
-            self.fM_1[i]   = self.objective_func(sample.M_1[i])
-            if self.verbose: move_spinner(i)
+	if self.processing: 
+		# First process the A and B matrices
+		if self.verbose: print "Processing f(M_1):"
+		self.fM_1[0] = test # Save first execution
+		for i in range(1,self.n):
+			self.fM_1[i]   = self.objective_func(sample.M_1[i])
+			if self.verbose: move_spinner(i)
 
-        if self.verbose: print "Processing f(M_2):"
-        for i in range(self.n):
-            self.fM_2[i]   = self.objective_func(sample.M_2[i])
-            if self.verbose: move_spinner(i)
+		if self.verbose: print "Processing f(M_2):"
+		for i in range(self.n):
+			self.fM_2[i]   = self.objective_func(sample.M_2[i])
+			if self.verbose: move_spinner(i)
 
-        if self.verbose: print "Processing f(N_j)"
+		if self.verbose: print "Processing f(N_j)"
+		for i in range(self.k):
+			if self.verbose: print " * parameter %d"%i
+			for j in range(self.n):
+				self.fN_j[i][j] = self.objective_func(sample.N_j[i][j])
+				if self.verbose: move_spinner(j)
+
+		if self.verbose: print "Processing f(N_nj)"
+		for i in range(self.k):
+			if self.verbose: print " * parameter %d"%i
+			for j in range(self.n):
+				self.fN_nj[i][j] = self.objective_func(sample.N_nj[i][j])
+				if self.verbose: move_spinner(j)
+
+    def flat(self):
+        '''Return the sample space as an array n*(2*k+2) long, containing arrays k long'''
+        x = numpy.append(self.fM_1, self.fM_2, axis=0)
         for i in range(self.k):
-            if self.verbose: print " * parameter %d"%i
-            for j in range(self.n):
-                self.fN_j[i][j] = self.objective_func(sample.N_j[i][j])
-                if self.verbose: move_spinner(j)
-
-        if self.verbose: print "Processing f(N_nj)"
+            x = numpy.append(x, self.fN_j[i], axis=0)
         for i in range(self.k):
-            if self.verbose: print " * parameter %d"%i
-            for j in range(self.n):
-                self.fN_nj[i][j] = self.objective_func(sample.N_nj[i][j])
-                if self.verbose: move_spinner(j)
+            x = numpy.append(x, self.fN_nj[i], axis=0)
+        return x
+
+    def export(self, prefix, postfix):
+        f = self.flat()
+        numpy.savetxt("%s%s" % (prefix, postfix), f)
 
     def load(self, prefix, postfix, count, scaling = 1.0):
         d = numpy.loadtxt("%s%d%s" % (prefix, 1, postfix))
@@ -265,7 +280,6 @@ class Varsens(object):
     '''
     def __init__(self, objective, scaling_func=None, k=None, n=None, sample=None, verbose=True):
         self.verbose    = verbose
-
         # If the sample object if predefined use it
         if isinstance(sample, Sample):
             self.sample = sample
@@ -276,8 +290,6 @@ class Varsens(object):
             self.n      = n
             self.sample = Sample(k, n, scaling_func, verbose)
         elif not isinstance(objective, Objective):
-            self.k      = objective.k
-            self.n      = objective.n
             # No sample provided, no sample space definition provided, no pre-evaluated objective provided
             # Impossible to compute variable sensitivity
             raise ValueError("Must specify sample, (k,n,scaling_func), or Objective object")
@@ -285,6 +297,8 @@ class Varsens(object):
         # Execute the model to determine the objective function
         if isinstance(objective, Objective):
             self.objective = objective
+	    self.k      = objective.k
+            self.n      = objective.n
         else: # The object is predefined.
             self.objective = Objective(self.k, self.n, self.sample, objective, verbose)
 
@@ -292,10 +306,9 @@ class Varsens(object):
         self.compute_varsens()
 
     def compute_varsens(self):
-        ''' Main computation of sensitivity via Saltelli method.
-        '''
+        ''' Main computation of sensitivity via Saltelli method.'''
         if self.verbose: print "Final sensitivity calculation"
-
+		
         n = len(self.objective.fM_1)
         self.E_2 = sum(self.objective.fM_1*self.objective.fM_2) / n      # Eq (21)
         #self.E_2 = sum(self.objective.fM_1) / n # Eq(22)

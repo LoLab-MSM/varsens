@@ -22,7 +22,7 @@ for i in range(len(model.parameters)):
          model.parameters[i].value = fittedparams[model.parameters[i].name]
          
 
-solver = Solver(model, t, integrator='lsoda', with_jacobian=True, atol=1e-6, rtol=1e-6, nsteps=10000)
+solver = Solver(model, t, integrator='vode', with_jacobian=True, atol=1e-6, rtol=1e-6, nsteps=10000)
 solver.run()
 
 expdata = np.load('/home/shockle/egfr/egfr/experimental_data_A431_highEGF_unnorm.npy')
@@ -46,7 +46,12 @@ def obj_func(params):
     return np.array([obj_AKT, obj_ErbB1, obj_ERK])
 
 #n*(2*k+2) - for erbb_exec model = 7500 * (2*215 + 2) = 3240000
+#Run to generate samples
 sample = Sample(len(model.parameters_rules()), 7500, lambda x: scale.magnitude(x, reference=reference, orders=1.0), verbose=True)
-os.chrdir('/scratch/shockle/varsens/samples')
+os.chdir('/scratch/shockle/varsens/samples')
 sample.export(prefix='erbb_sample_', postfix='', blocksize=2160)
 
+#Run below in parallel to generate objective functions (with input samplefile from command line)
+#samplegroup = Sample(len(model.parameters_rules()), 5, lambda x: x, verbose=True, loadFile=samplefile)
+#objective = Objective(len(model.parameters_rules()), 5, samplegroup, obj_func, verbose=True)
+#objective.export('erbb_objective_', '', block)

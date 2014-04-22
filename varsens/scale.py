@@ -1,4 +1,4 @@
-"""A collection of helper scaling functions that map low discrepency sequences into desired ranges.
+"""A collection of helper scaling functions that map low discrepancy sequences into desired ranges.
 """
 
 import numpy
@@ -9,7 +9,7 @@ def linear(points, lower_bound, upper_bound):
     Parameters
     ----------
     points : numpy.array
-        numeric data to map in the domain [0,1] (usually from a low-discrepency sequence)
+        numeric data to map in the domain [0,1] (usually from a low-discrepancy sequence)
     lower_bound : numpy.array
         The lower bounds of mapping. Must be same shape as points
     upper_bound : numpy.array
@@ -38,7 +38,7 @@ def power(points, lower_bound, upper_bound):
     Parameters
     ----------
     points : numpy.array
-        numeric data to map in the domain [0,1] (usually from a low-discrepency sequence)
+        numeric data to map in the domain [0,1] (usually from a low-discrepancy sequence)
     lower_bound : numpy.array
         The lower bounds of mapping. Must be same shape as points, and be all positive floats
     upper_bound : numpy.array
@@ -67,7 +67,7 @@ def percentage(points, reference, percentage=50.0):
     Parameters
     ----------
     points : numpy.array
-        numeric data to map in the domain [0,1] (usually from a low-discrepency sequence)
+        numeric data to map in the domain [0,1] (usually from a low-discrepancy sequence)
     reference : numpy.array
         The reference in the middle of the desired range
     percentage : numpy.array
@@ -96,9 +96,9 @@ def magnitude(points, reference, orders=3.0, base=10.0):
     Parameters
     ----------
     points : numpy.array
-        numeric data to map in the domain [0,1] (usually from a low-discrepency sequence)
+        numeric data to map in the domain [0,1] (usually from a low-discrepancy sequence)
     reference : numpy.array
-        The reference in the logrithmic middle of the desired range
+        The reference in the logarithmic middle of the desired range
     orders : float
         A single number indicating the +/- orders of magnitude to apply
     base : float

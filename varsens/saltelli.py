@@ -1,7 +1,7 @@
 import ghalton
 import numpy
 import sys
-import random
+# import random
 import os
 
 def move_spinner(i):
@@ -49,8 +49,8 @@ class Sample(object):
         
 #         if not scaling: return None
         
-        self.k = k
-        self.n = n
+        self.k = int(k) # Cast to int to allow scientific notation to be used...
+        self.n = int(n) # ...Useful for large models
         self.scaling = scaling
         self.verbose = verbose
         
@@ -66,23 +66,23 @@ class Sample(object):
             seq.get(20*self.k) # Remove initial linear correlated points
             x = numpy.array(seq.get(2*self.n))
         
-        if self.verbose: print "Calculating M_1"
+        if self.verbose: print "Generating M_1"
         self.M_1 = self.scaling(x[0:self.n,...])
         
-        if self.verbose: print "Calculating M_2"
+        if self.verbose: print "Generating M_2"
         self.M_2 = self.scaling(x[self.n:(2*self.n),...])
 
         # This is the magic trick that makes it all work, not mentioned
         # in Saltelli's papers.
         if self.verbose: print "Eliminating correlations"
-        random.seed(1)
+        numpy.random.seed(1)
         numpy.random.shuffle(self.M_2) # Eliminate any correlation
 
         # Generate the sample/re-sample permutations
-        if self.verbose: print "Calculating N_j"
+        if self.verbose: print "Generating N_j"
         self.N_j  = self.generate_N_j(self.M_1, self.M_2) # See Eq (11)
         
-        if self.verbose: print "Calculating N_nj"
+        if self.verbose: print "Generating N_nj"
         self.N_nj = self.generate_N_j(self.M_2, self.M_1)
         
         #####

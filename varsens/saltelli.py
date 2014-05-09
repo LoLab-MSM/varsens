@@ -26,10 +26,11 @@ class Sample(object):
             scales them to the desired range for the objective function. See
             varsens.scale for helpers.
         discard : int, optional (default: 0)
-            Number of values to discard from the beginning of the generated Halton 
-            sequence *in addition to* the 20*k initial linear correlated points 
-            removed by default. This allows sampling to be continued from the point
-            at which it was terminated.
+            Number of samples to discard from the beginning of the generated
+            Halton sequence (note that this is in addition to the 20*k that are
+            discarded by default). This makes it possible to continue a sample from
+            where it was terminated if it is determined that sufficient precision in
+            the sensitivity calculations has not been achieved.
         verbose : bool, optional (default: True)
             Verbose output
         loadArgs : keyword arguments, optional
@@ -269,7 +270,7 @@ class Objective(object):
             'offset'   : Starting index for input filenames (optional; default=1).
             'postfix'  : File postfix (optional; default = '.txt').
     '''
-    def __init__(self, k, n, sample=None, objective_func=None, verbose=True, **loadArgs):
+    def __init__(self, k, n, sample=None, objective_func=None, objective_vals=[], verbose=True, **loadArgs):
 
         self.k              = k
         self.n              = n
@@ -279,9 +280,11 @@ class Objective(object):
 
         if self.verbose: print "Generating Objective Values..."
         
-        if loadArgs:
+        if len(objective_vals) > 0: # values loaded in an array
+            self.load(objective_vals)
+        elif loadArgs: # load values from file
             self.load(**loadArgs)
-        else: # Generate the objective
+        else: # generate the objective
             if not self.sample:
                 raise Exception("Generating a fresh objective requires that a 'sample' be defined.")
             elif not self.objective_func:
@@ -304,36 +307,39 @@ class Objective(object):
                 self.fN_j  = numpy.zeros([self.k] + [self.n]) # matrix is of shape (nparam, nsamples)
                 self.fN_nj = numpy.zeros([self.k] + [self.n])
             
-            track = 1
-            # First process the A and B matrices
+            step = 0
+            total = 2*self.n*(1+self.k)
+            output = 0.01*total
+            output = int(output) if output > 1 else 1
+            
             if self.verbose: print "Processing f(M_1):"
             self.fM_1[0] = test # Save first execution
             for i in range(1,self.n):
-                self.fM_1[i]   = self.objective_func(sample.M_1[i])
-                track += 1
-                if self.verbose: print track #move_spinner(i)
-        
+                self.fM_1[i] = self.objective_func(sample.M_1[i])
+                step += 1
+                if self.verbose and step % output == 0: print str(int(round(100.*step/total)))+"%" #move_spinner(i)
+                
             if self.verbose: print "Processing f(M_2):"
             for i in range(self.n):
-                self.fM_2[i]   = self.objective_func(sample.M_2[i])
-                track += 1
-                if self.verbose: print track #move_spinner(i)
+                self.fM_2[i] = self.objective_func(sample.M_2[i])
+                step += 1
+                if self.verbose and step % output == 0: print str(int(round(100.*step/total)))+"%" #move_spinner(i)
         
             if self.verbose: print "Processing f(N_j)"
             for i in range(self.k):
                 if self.verbose: print " * parameter %d"%i
                 for j in range(self.n):
                     self.fN_j[i][j] = self.objective_func(sample.N_j[i][j])
-                    track += 1 
-                    if self.verbose: print track #move_spinner(j)
+                    step += 1 
+                    if self.verbose and step % output == 0: print str(int(round(100.*step/total)))+"%" #move_spinner(i)
         
             if self.verbose: print "Processing f(N_nj)"
             for i in range(self.k):
                 if self.verbose: print " * parameter %d"%i
                 for j in range(self.n):
                     self.fN_nj[i][j] = self.objective_func(sample.N_nj[i][j])
-                    track += 1
-                    if self.verbose: print track #move_spinner(j)
+                    step += 1
+                    if self.verbose and step % output == 0: print str(int(round(100.*step/total)))+"%" #move_spinner(i)
 
     def flat(self):
         '''Return the objectives as an array 2*n*(1+k) long'''
@@ -393,47 +399,58 @@ class Objective(object):
                 numpy.savetxt("%s_%d%s" % (prefix, b+1, postfix), f[b*blocksize : (b+1)*blocksize])
                 if self.verbose: print "Done."
 
-    def load(self, indir='', loadFile=None, prefix=None, postfix='.txt', nFiles=None, offset=1, scaling=1.0):
+    def load(self, obj_vals=[], indir='', loadFile=None, prefix=None, postfix='.txt', nFiles=None, offset=1, scaling=1.0):
         
-        FILES = []
-        if loadFile:
-            FILES.append(os.path.join(indir,loadFile))
+        if len(obj_vals) > 0:
+            x = obj_vals
         else:
-            # If 'loadFile' not defined then 'prefix' needs to be
-            if not prefix: 
-                raise Exception("Either 'loadFile' or 'prefix' are required to load an objective from file.")
-            # If 'prefix' defined then 'nFiles' needs to be
-            if not nFiles: 
-                raise Exception("Loading objective files with 'prefix' requires defining 'nFiles'.")
-            if prefix[-1] != "_": prefix += "_" 
-            for i in range(offset,offset+nFiles):
-                FILES.append(os.path.join(indir,prefix)+str(i)+postfix)
-                
-        obj = []
-        for file in FILES:
-            if not os.path.isfile(file):
-                raise Exception("Cannot find input file "+file)
-            if self.verbose: print "Reading "+file+" ...",
-            obj.append(numpy.loadtxt(open(file, "rb"), ndmin=2)) # ndmin=2 so that vstack works even for 1D arrays
+            FILES = []
+            if loadFile:
+                FILES.append(os.path.join(indir,loadFile))
+            else:
+                # If 'loadFile' not defined then 'prefix' needs to be
+                if not prefix: 
+                    raise Exception("Either 'loadFile' or 'prefix' are required to load an objective from file.")
+                # If 'prefix' defined then 'nFiles' needs to be
+                if not nFiles: 
+                    raise Exception("Loading objective files with 'prefix' requires defining 'nFiles'.")
+                if prefix[-1] != "_": prefix += "_" 
+                for i in range(offset,offset+nFiles):
+                    FILES.append(os.path.join(indir,prefix)+str(i)+postfix)
+                    
+            obj = []
+            for file in FILES:
+                if not os.path.isfile(file):
+                    raise Exception("Cannot find input file "+file)
+                if self.verbose: print "Reading "+file+" ...",
+                obj.append(numpy.loadtxt(open(file, "rb")))
+                if self.verbose: print "Done."
+            
+            if self.verbose: print "Stacking...",
+            if len(numpy.array(obj).shape) == 2: # one observable (list of 1-D arrays)
+                x = numpy.hstack(obj)
+            else: # more than one observable
+                x = numpy.vstack(obj)
             if self.verbose: print "Done."
-        
-        if self.verbose: print "Stacking...",
-        x = numpy.vstack(obj)
-        if self.verbose: print "Done."
         
         if len(x) == 2*self.n*(1+self.k): 
             if self.verbose: print "Extracting fM_1"
             self.fM_1 = x[0:self.n,...] / scaling
             if self.verbose: print "Extracting fM_2"
             self.fM_2 = x[self.n:2*self.n,...] / scaling
-            if self.verbose: print "Extracting fN_j"
             curr_length = 2*self.n
-            self.fN_j = numpy.zeros((self.k, self.n, len(x[0])))
+            try: 
+                l = len(x[0])
+                self.fN_j = numpy.zeros((self.k, self.n, l))
+                self.fN_nj = numpy.zeros((self.k, self.n, l))
+            except TypeError:
+                self.fN_j = numpy.zeros((self.k, self.n))
+                self.fN_nj = numpy.zeros((self.k, self.n))
+            if self.verbose: print "Extracting fN_j"
             for i in range(self.k):
                 self.fN_j[i] = x[curr_length:curr_length+self.n,...] / scaling
                 curr_length += self.n
             if self.verbose: print "Extracting fN_nj"
-            self.fN_nj = numpy.zeros((self.k, self.n, len(x[0])))
             for i in range(self.k):
                 self.fN_nj[i] = x[curr_length:curr_length+self.n,...] / scaling
                 curr_length += self.n
@@ -524,7 +541,7 @@ class Varsens(object):
             self.n      = n
             self.sample = Sample(k, n, scaling_func, verbose)
         elif not isinstance(objective, Objective):
-            # No sample provided, no sample space definition provided, no pre-evaluated objective provided
+            # No sample provided, no sample space definition provided, no pre-evaluated Objective provided
             # Impossible to compute variable sensitivity
             raise ValueError("Must specify sample, (k,n,scaling_func), or Objective object")
 

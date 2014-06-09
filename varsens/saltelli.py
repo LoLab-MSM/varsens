@@ -73,7 +73,7 @@ class Sample(object):
             if not self.scaling:
                 raise Exception("Generating a fresh sample space requires that a 'scaling' function be defined.")
             seq = ghalton.Halton(self.k)
-            seq.get(20*self.k+int(discard)) # Remove initial linear correlated points plus any additional specified by the user.
+            seq.get(20*self.k + int(discard)) # Remove initial linear correlated points plus any additional specified by the user.
             x = numpy.array(seq.get(2*self.n))
         
         if self.verbose: print "Generating M_1"
@@ -87,7 +87,7 @@ class Sample(object):
         numpy.random.seed(1)
         numpy.random.shuffle(self.M_2) # Eliminate any correlation
 
-        # Generate the sample/re-sample permutations
+        # Generate the sample/resample permutations
         if self.verbose: print "Generating N_j"
         self.N_j  = self.generate_N_j(self.M_1, self.M_2) # See Eq (11)
         
@@ -97,10 +97,10 @@ class Sample(object):
         if self.verbose: print "...Done."
     
     def generate_N_j(self, M_1, M_2):
-        '''when passing the quasi-random low discrepancy-treated A and B matrixes, this function
-        iterates over all the possibilities and returns the C matrix for simulations.
-        See e.g. Saltelli, Ratto, Andres, Campolongo, Cariboni, Gatelli, Saisana,
-        Tarantola Global Sensitivity Analysis'''
+        '''When passing the quasi-random low discrepancy-treated M_1 and M_2 matrices, 
+        this function iterates over all the possibilities and returns the N_j matrix for 
+        simulations. See e.g. Saltelli, Ratto, Andres, Campolongo, Cariboni, Gatelli, 
+        Saisana, Tarantola, "Global Sensitivity Analysis"'''
 
         # allocate the space for the C matrix
         N_j = numpy.array([M_2]*self.k)
@@ -293,19 +293,18 @@ class Objective(object):
             # Determine objective_func return type
             test = self.objective_func(sample.M_1[0])
             
-            # assign the arrays that will hold fM_1, fM_2 and fN_j_n, either as a list or single value
+            # assign the arrays that will hold fM_1, fM_2, fN_j, and fN_nj
             try:
                 l = len(test)
-                self.fM_1  = numpy.zeros([self.n] + [l])
-                self.fM_2  = numpy.zeros([self.n] + [l])
-                self.fN_j  = numpy.zeros([self.k] + [self.n] + [l])
-                self.fN_nj = numpy.zeros([self.k] + [self.n] + [l])
+                self.fM_1  = numpy.zeros((self.n, l))
+                self.fM_2  = numpy.zeros((self.n, l))
+                self.fN_j  = numpy.zeros((self.k, self.n, l))
+                self.fN_nj = numpy.zeros((self.k, self.n, l))
             except TypeError:
-                # assign the arrays that will hold fM_1, fM_2 and fN_j_n
-                self.fM_1  = numpy.zeros(self.n)
-                self.fM_2  = numpy.zeros(self.n)
-                self.fN_j  = numpy.zeros([self.k] + [self.n]) # matrix is of shape (nparam, nsamples)
-                self.fN_nj = numpy.zeros([self.k] + [self.n])
+                self.fM_1  = numpy.zeros((self.n, 1))
+                self.fM_2  = numpy.zeros((self.n, 1))
+                self.fN_j  = numpy.zeros((self.k, self.n, 1))
+                self.fN_nj = numpy.zeros((self.k, self.n, 1))
             
             step = 0
             total = 2*self.n*(1+self.k)
@@ -354,7 +353,7 @@ class Objective(object):
         if len(self.fM_1.shape) > 1:
             x = numpy.zeros(((l1+l2+l3+l4), self.fM_1.shape[1]))
         else:
-            x = numpy.zeros((l1+l2+l3+l4))
+            x = numpy.zeros(l1+l2+l3+l4)
         
         if self.verbose: print "Flattening fM_1"
         x[0:l1,...]  = self.fM_1
@@ -444,8 +443,8 @@ class Objective(object):
                 self.fN_j = numpy.zeros((self.k, self.n, l))
                 self.fN_nj = numpy.zeros((self.k, self.n, l))
             except TypeError:
-                self.fN_j = numpy.zeros((self.k, self.n))
-                self.fN_nj = numpy.zeros((self.k, self.n))
+                self.fN_j = numpy.zeros((self.k, self.n, 1))
+                self.fN_nj = numpy.zeros((self.k, self.n, 1))
             if self.verbose: print "Extracting fN_j"
             for i in range(self.k):
                 self.fN_j[i] = x[curr_length:curr_length+self.n,...] / scaling
@@ -530,7 +529,7 @@ class Varsens(object):
             array([...])
     '''
     def __init__(self, objective, scaling_func=None, k=None, n=None, sample=None, verbose=True):
-        self.verbose    = verbose
+        self.verbose = verbose
         # If the sample object is predefined use it
         if isinstance(sample, Sample):
             self.sample = sample
@@ -548,8 +547,8 @@ class Varsens(object):
         # Execute the model to determine the objective function
         if isinstance(objective, Objective):
             self.objective = objective
-            self.k      = objective.k
-            self.n      = objective.n
+            self.k         = objective.k
+            self.n         = objective.n
         else: # The object is predefined.
             self.objective = Objective(self.k, self.n, self.sample, objective, verbose)
 
@@ -560,9 +559,9 @@ class Varsens(object):
         ''' Main computation of sensitivity via Saltelli method.'''
         if self.verbose: print "Final sensitivity calculation"
         
-        n = len(self.objective.fM_1)
-        self.E_2 = sum(self.objective.fM_1*self.objective.fM_2) / n      # Eq (21)
-#         self.E_2 = sum(self.objective.fM_1) / n # Eq(22)
+#         n = len(self.objective.fM_1)
+        self.E_2 = sum(self.objective.fM_1*self.objective.fM_2) / self.n      # Eq (21)
+#         self.E_2 = sum(self.objective.fM_1) / self.n # Eq(22)
 #         self.E_2 *= self.E_2
         
         #estimate V(y) from self.objective.fM_1 and self.objective.fM_2
@@ -570,16 +569,16 @@ class Varsens(object):
         self.var_y = numpy.var(numpy.concatenate((self.objective.fM_1, self.objective.fM_2), axis=0), axis=0, ddof=1)
 
 # FIXME: This NEED WORK, and it is IMPORTANT
-        #if not numpy.all(numpy.sqrt(numpy.abs(self.E_2)) > 1.96*numpy.sqrt(self.var_y / n)):
+        #if not numpy.all(numpy.sqrt(numpy.abs(self.E_2)) > 1.96*numpy.sqrt(self.var_y / self.n)):
         #    print "Excessive variance in estimation of E^2"
         #    raise ArithmeticError
         
         # Estimate U_j and U_-j values and store them, but by double method
-        self.U_j  =  numpy.sum(self.objective.fM_1 * self.objective.fN_j,  axis=1) / (n - 1)  # Eq (12)
-        self.U_j  += numpy.sum(self.objective.fM_2 * self.objective.fN_nj, axis=1) / (n - 1) 
+        self.U_j  =  numpy.sum(self.objective.fM_1 * self.objective.fN_j,  axis=1) / (self.n - 1)  # Eq (12)
+        self.U_j  += numpy.sum(self.objective.fM_2 * self.objective.fN_nj, axis=1) / (self.n - 1) 
         self.U_j  /= 2.0
-        self.U_nj =  numpy.sum(self.objective.fM_1 * self.objective.fN_nj, axis=1) / (n - 1)  # Eq (unnumbered one after 18)
-        self.U_nj += numpy.sum(self.objective.fM_2 * self.objective.fN_j,  axis=1) / (n - 1) 
+        self.U_nj =  numpy.sum(self.objective.fM_1 * self.objective.fN_nj, axis=1) / (self.n - 1)  # Eq (unnumbered one after 18)
+        self.U_nj += numpy.sum(self.objective.fM_2 * self.objective.fN_j,  axis=1) / (self.n - 1) 
         self.U_nj /= 2.0
         
         #allocate the S_i and ST_i arrays
@@ -598,13 +597,13 @@ class Varsens(object):
         # Compute 2nd order terms (from double estimates)
         self.sens_2  =  numpy.tensordot(self.objective.fN_nj, self.objective.fN_j,  axes=([1],[1]))
         self.sens_2  += numpy.tensordot(self.objective.fN_j,  self.objective.fN_nj, axes=([1],[1]))
-        self.sens_2  /= 2.0*(n-1)
+        self.sens_2  /= 2.0 * (self.n-1)
         self.sens_2  -= self.E_2
         self.sens_2  /= self.var_y
         
         self.sens_2n =  numpy.tensordot(self.objective.fN_nj, self.objective.fN_nj, axes=([1],[1]))
         self.sens_2n += numpy.tensordot(self.objective.fN_j,  self.objective.fN_j,  axes=([1],[1]))
-        self.sens_2n /= 2.0 * (n-1)
+        self.sens_2n /= 2.0 * (self.n-1)
         self.sens_2n -= self.E_2
         self.sens_2n /= self.var_y
 

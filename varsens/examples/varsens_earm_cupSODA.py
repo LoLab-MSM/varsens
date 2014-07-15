@@ -64,8 +64,6 @@ tspan = exp_data['Time']
 solver = cupSODA(model, tspan, atol=1e-12, rtol=1e-6, verbose=True)
 	
 # Determine IDs for rate parameters, original values for all parameters to overlay, and reference values for scaling.
-k_ids = [i for i,p in enumerate(model.parameters) if p in model.parameters_rules()]
-par_vals = np.array([p.value for p in model.parameters])
 ref = np.array([p.value for p in model.parameters_rules()])
 
 # List of model observables and corresponding data file columns for point-by-point fitting
@@ -84,16 +82,11 @@ momp_obs_total = model.parameters['Smac_0'].value
 momp_data = np.array([9810.0, 180.0, momp_obs_total])
 momp_var = np.array([7245000.0, 3600.0, 1e4])
 
-# def objective_func(params):
 def objective_func(yobs):
-	
-# 	par_vals[k_ids] = params
-# 	solver.run(par_vals)
 	
 	# Calculate error for point-by-point trajectory comparisons
 	for obs_name, data_name, var_name, obs_total in zip(obs_names, data_names, var_names, obs_totals):
 		# Get model observable trajectory (this is the slice expression mentioned above in the comment for tspan)
-# 		ysim = solver.yobs[obs_name] #[::tmul]
 		ysim = yobs[obs_name]
 		# Normalize it to 0-1
 		ysim_norm = ysim / obs_total
@@ -109,7 +102,6 @@ def objective_func(yobs):
 	# Calculate error for Td, Ts, and final value for IMS-RP reporter
 	# =====
 	# Normalize trajectory
-# 	ysim_momp = solver.yobs[momp_obs]
 	ysim_momp = yobs[momp_obs]
 	ysim_momp_norm = ysim_momp / np.nanmax(ysim_momp)
 	# Build a spline to interpolate it
@@ -193,7 +185,7 @@ for n_samples in N_SAMPLES:
 					else:
 						MX_0[:,j] = [x.value for i in range(len(sample_batch))]
 					break
-				
+		
 		solver.run(c_matrix, MX_0, outdir=os.path.join(outdir,'NSAMPLES_'+str(n_samples)), gpu=GPU) # load_conc_data=False) #obs_species_only=False)
 		if n_batches > 1:
 			os.rename(os.path.join(solver.outdir,"__CUPSODA_FILES"), os.path.join(solver.outdir,"__CUPSODA_FILES_%d_of_%d" % ((batch+1), n_batches)))
@@ -201,7 +193,7 @@ for n_samples in N_SAMPLES:
 		for i in range(end-start):
 			obj_vals[i] = objective_func(solver.yobs[i])
 			
-	objective = Objective(len(par_vals), n_samples, objective_vals=obj_vals)
+	objective = Objective(len(par_names), n_samples, objective_vals=obj_vals)
 	v = Varsens(objective)
 	
 	for n in range(v.sens.shape[1]):

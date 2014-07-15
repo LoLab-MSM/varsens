@@ -13,10 +13,11 @@ import scipy.interpolate
 import matplotlib.pyplot as plt
 import datetime
 
-##### Set paths
+##### User-defined variables
 outdir = '/Users/lopezlab/temp/EARM/'
 set_cupSODA_path("/Users/lopezlab/cupSODA")
 GPU = 0
+max_samples_per_batch = 352
 #####
 
 par_names = [p.name for p in model.parameters_rules()]
@@ -129,40 +130,37 @@ def objective_func(yobs):
 	
 	return [emBid, ecPARP, e2]
 
+##### Define list of sample sizes here
 n_iter = 2
 n_start = 2
-N_SAMPLES = [n_start*iter for iter in range(1,n_iter+1)]
+N_SAMPLES = [n_start+n_start*iter for iter in range(n_iter)]
+#####
 
-threads_per_block = 32
+max_sims_per_batch = 2*max_samples_per_batch*(1+len(par_names))
 solver.verbose = False
 
 for n_samples in N_SAMPLES:
 	
-	total_sims = 2*n_samples*(1+len(par_names))
-	n_blocks = min(2354, int(round(1.*total_sims/threads_per_block)))
-	sims_per_batch = n_blocks*threads_per_block
-	n_batches = max( 2*n_samples*(1+len(par_names)), sims_per_batch ) / sims_per_batch
+	n_sims = 2*n_samples*(1+len(par_names))
+	n_batches = int(np.ceil(1.*n_sims/max_sims_per_batch))
 	
 	#####
 # 	print "n_samples:", n_samples
-# 	print "total_sims:", total_sims
-# 	print "n_blocks:", n_blocks
-# 	print "sims_per_batch:", sims_per_batch
+# 	print "n_sims:", n_sims
+# 	print "max_sims_per_batch:", max_sims_per_batch
 # 	print "n_batches:", n_batches
-# 	print "n_batches*sims_per_batch:", n_batches*sims_per_batch, "("+str(total_sims)+")"
 # 	print "----------------"
-# 	n_samples *= 2
 # 	continue
 	#####
 
 	sample = Sample(len(model.parameters_rules()), n_samples, lambda x: scale.linear(x, lower_bound=0.1*ref, upper_bound=10*ref))
 	sample_flat = sample.flat()
-	obj_vals = np.zeros((total_sims, len(obj_names)))
+	obj_vals = np.zeros((n_sims, len(obj_names)))
 	
 	for batch in range(n_batches):
 		
-		start = batch*sims_per_batch
-		end = min(start+sims_per_batch, total_sims)
+		start = batch*max_sims_per_batch
+		end = min(start+max_sims_per_batch, n_sims)
 		sample_batch = sample_flat[start:end]
 		
 		# Rate constants
@@ -195,14 +193,14 @@ for n_samples in N_SAMPLES:
 					else:
 						MX_0[:,j] = [x.value for i in range(len(sample_batch))]
 					break
-
-        solver.run(c_matrix, MX_0, outdir=os.path.join(outdir,'NSAMPLES_'+str(n_samples)), gpu=GPU) # load_conc_data=False) #obs_species_only=False)
-        if n_batches > 1:
-        		os.rename(os.path.join(solver.outdir,"__CUPSODA_FILES"), os.path.join(solver.outdir,"__CUPSODA_FILES_%d_of_%d" % ((batch+1), n_batches)))
-		
-        for i in range(end-start):
-        		obj_vals[i] = objective_func(solver.yobs[i])
-	
+				
+		solver.run(c_matrix, MX_0, outdir=os.path.join(outdir,'NSAMPLES_'+str(n_samples)), gpu=GPU) # load_conc_data=False) #obs_species_only=False)
+		if n_batches > 1:
+			os.rename(os.path.join(solver.outdir,"__CUPSODA_FILES"), os.path.join(solver.outdir,"__CUPSODA_FILES_%d_of_%d" % ((batch+1), n_batches)))
+			
+		for i in range(end-start):
+			obj_vals[i] = objective_func(solver.yobs[i])
+			
 	objective = Objective(len(par_vals), n_samples, objective_vals=obj_vals)
 	v = Varsens(objective)
 	

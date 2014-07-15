@@ -16,6 +16,7 @@ import datetime
 ##### Set paths
 outdir = '/Users/lopezlab/temp/EARM/'
 set_cupSODA_path("/Users/lopezlab/cupSODA")
+GPU = 0
 #####
 
 par_names = [p.name for p in model.parameters_rules()]
@@ -25,9 +26,9 @@ obj_names = ['emBid', 'ecPARP', 'e2']
 
 outfiles = {}
 for name in obj_names:
-	outfiles[name+'_sens']    = os.path.join(outdir,name+"_sens_scipy.txt")
-	outfiles[name+'_sens_t']  = os.path.join(outdir,name+"_sens_t_scipy.txt")
-	outfiles[name+'_sens_2']  = os.path.join(outdir,name+"_sens_2_scipy.txt")
+	outfiles[name+'_sens']    = os.path.join(outdir,name+"_sens_cupSODA.txt")
+	outfiles[name+'_sens_t']  = os.path.join(outdir,name+"_sens_t_cupSODA.txt")
+	outfiles[name+'_sens_2']  = os.path.join(outdir,name+"_sens_2_cupSODA.txt")
 OUTPUT = {key : open(file, 'a') for key,file in outfiles.items()}
 for file in OUTPUT.values():
 	file.write("-----"+str(datetime.datetime.now())+"-----\n")
@@ -156,7 +157,7 @@ for n_samples in N_SAMPLES:
 
 	sample = Sample(len(model.parameters_rules()), n_samples, lambda x: scale.linear(x, lower_bound=0.1*ref, upper_bound=10*ref))
 	sample_flat = sample.flat()
-	obj_vals = np.zeros((total_sims, len(obs_names)))
+	obj_vals = np.zeros((total_sims, len(obj_names)))
 	
 	for batch in range(n_batches):
 		
@@ -185,21 +186,22 @@ for n_samples in N_SAMPLES:
 		
 		# Initial concentrations
 		MX_0 = np.zeros((len(sample_batch),len(model.species)))
-        	for i in range(len(model.initial_conditions)):
-        		for j in range(len(model.species)):
-        			if str(model.initial_conditions[i][0]) == str(model.species[j]): # The ComplexPattern objects are not the same, even though they refer to the same species (ask about this)
-        				x = model.initial_conditions[i][1]
-        				if (x.name in par_dict.keys()):
-        					MX_0[:,j] = sample_batch[:,par_dict[x.name]]
-        				else:
-        					MX_0[:,j] = [x.value for i in range(len(sample_batch))]
-        				break
-        
-        solver.run(c_matrix, MX_0, outdir=os.path.join(outdir,'NSAMPLES_'+str(n_samples))) #obs_species_only=False, load_conc_data=False)
-        os.rename(os.path.join(solver.outdir,"__CUPSODA_FILES"), os.path.join(solver.outdir,"__CUPSODA_FILES_"+str(batch)))
-        
+		for i in range(len(model.initial_conditions)):
+			for j in range(len(model.species)):
+				if str(model.initial_conditions[i][0] == str(model.species[j])): # The ComplexPattern objects are not the same, even though they refer to the same species (ask about this)
+					x = model.initial_conditions[i][1]
+					if (x.name in par_dict.keys()):
+						MX_0[:,j] = sample_batch[:,par_dict[x.name]]
+					else:
+						MX_0[:,j] = [x.value for i in range(len(sample_batch))]
+					break
+
+        solver.run(c_matrix, MX_0, outdir=os.path.join(outdir,'NSAMPLES_'+str(n_samples)), gpu=GPU) # load_conc_data=False) #obs_species_only=False)
+        if n_batches > 1:
+        		os.rename(os.path.join(solver.outdir,"__CUPSODA_FILES"), os.path.join(solver.outdir,"__CUPSODA_FILES_%d_of_%d" % ((batch+1), n_batches)))
+		
         for i in range(end-start):
-        		obj_vals[i] = objective_fun(solver.yobs[i])
+        		obj_vals[i] = objective_func(solver.yobs[i])
 	
 	objective = Objective(len(par_vals), n_samples, objective_vals=obj_vals)
 	v = Varsens(objective)

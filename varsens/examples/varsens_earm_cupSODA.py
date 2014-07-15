@@ -188,7 +188,7 @@ for n_samples in N_SAMPLES:
 		MX_0 = np.zeros((len(sample_batch),len(model.species)))
 		for i in range(len(model.initial_conditions)):
 			for j in range(len(model.species)):
-				if str(model.initial_conditions[i][0] == str(model.species[j])): # The ComplexPattern objects are not the same, even though they refer to the same species (ask about this)
+				if str(model.initial_conditions[i][0]) == str(model.species[j]): # The ComplexPattern objects are not the same, even though they refer to the same species (ask about this)
 					x = model.initial_conditions[i][1]
 					if (x.name in par_dict.keys()):
 						MX_0[:,j] = sample_batch[:,par_dict[x.name]]

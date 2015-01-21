@@ -15,7 +15,7 @@ import datetime
 
 par_names = ['k1', 'k3', 'k4', 'kp4', 'k6', 'k8', 'k9']
 
-outdir = '/Users/lopezlab/temp/TYSON/'
+outdir = '/home/pinojc/git/varsens/varsens/examples/Tyson_output'
 outfiles = {
             'ALL'    : os.path.join(outdir,"tyson_sens_ALL_scipy.txt"),
             'sens'   : os.path.join(outdir,"tyson_sens_scipy.txt"),

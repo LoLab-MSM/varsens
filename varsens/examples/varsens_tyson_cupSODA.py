@@ -15,7 +15,7 @@ import datetime
 
 par_names = ['k1', 'k3', 'k4', 'kp4', 'k6', 'k8', 'k9']
 
-outdir = '/Users/lopezlab/temp/TYSON/'
+outdir = '/home/pinojc/git/varsens/varsens/examples/Tyson_output'
 outfiles = {
             'ALL'    : os.path.join(outdir,"tyson_sens_ALL_cupSODA.txt"),
             'sens'   : os.path.join(outdir,"tyson_sens_cupSODA.txt"),
@@ -51,7 +51,7 @@ ref = odesolve(model, t, integrator='lsoda', verbose=True)
 # plt.show()
 # quit()
 
-set_cupSODA_path("/Users/lopezlab/cupSODA")
+set_cupSODA_path("/home/pinojc/CUPSODA")
 solver = cupSODA(model, t, atol=1e-12, rtol=1e-6, verbose=True)
 
 par_dict = {par_names[i] : i for i in range(len(par_names))}

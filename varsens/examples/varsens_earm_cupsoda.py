@@ -1,10 +1,9 @@
 #!/usr/bin/env python
-
 from varsens import *
 from earm.lopez_embedded import model
 from pysb.integrate import Solver
 from pysb.util import load_params
-from pysb.tools.cupSODA import *
+from pysb.tools.cupsoda import *
 import os
 import copy
 import pickle
@@ -52,13 +51,25 @@ tspan = exp_data['Time']
 
 # plt.figure()
 # plt.plot(tspan,exp_data['ECRP'],linewidth=3,label='ECRP')
-# plt.plot(tspan,exp_data['norm_ECRP'],linewidth=3,label='norm_ECRP')
+# plt.plot(tspan,exp_data['norm_ECRP'],'g-',linewidth=3,label='norm_ECRP')
+# plt.plot(tspan,exp_data['norm_ECRP']+np.sqrt(exp_data['nrm_var_ECRP']),'g--',linewidth=3)
+# plt.plot(tspan,exp_data['norm_ECRP']-np.sqrt(exp_data['nrm_var_ECRP']),'g--',linewidth=3)
 # plt.legend(loc='lower right')
-#  
+#   
 # plt.figure()
 # plt.plot(tspan,exp_data['ICRP'],linewidth=3,label='ICRP')
-# plt.plot(tspan,exp_data['norm_ICRP'],linewidth=3,label='norm_ICRP')
+# plt.plot(tspan,exp_data['norm_ICRP'],'g-',linewidth=3,label='norm_ICRP')
+# plt.plot(tspan,exp_data['norm_ICRP']+np.sqrt(exp_data['nrm_var_ICRP']),'g--',linewidth=3)
+# plt.plot(tspan,exp_data['norm_ICRP']-np.sqrt(exp_data['nrm_var_ICRP']),'g--',linewidth=3)
 # plt.legend(loc='lower right')
+# 
+# plt.figure()
+# plt.plot(tspan,exp_data['nrm_var_ICRP'],linewidth=3,label='nrm_var_ICRP')
+# plt.plot(tspan,exp_data['nrm_var_ECRP'],linewidth=3,label='nrm_var_ECRP')
+# plt.legend(loc=0)
+# 
+# plt.show()
+# quit()
 
 # Initialize solver object
 solver = cupSODA(model, tspan, atol=1e-12, rtol=1e-6, verbose=True)
@@ -191,7 +202,11 @@ for n_samples in N_SAMPLES:
 			os.rename(os.path.join(solver.outdir,"__CUPSODA_FILES"), os.path.join(solver.outdir,"__CUPSODA_FILES_%d_of_%d" % ((batch+1), n_batches)))
 			
 		for i in range(end-start):
-			obj_vals[i] = objective_func(solver.yobs[i])
+			try:
+				obj_vals[i] = objective_func(solver.yobs[i])
+			except IndexError:
+				print i
+				raise
 			
 	objective = Objective(len(par_names), n_samples, objective_vals=obj_vals)
 	v = Varsens(objective)

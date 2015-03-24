@@ -7,7 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from varsens import *
 from pysb.generator.bng import BngGenerator
-from pysb.tools.cupSODA import *
+from pysb.tools.cupsoda import *
 import filecmp
 import os
 import re

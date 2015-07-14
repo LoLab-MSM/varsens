@@ -1,5 +1,5 @@
 Varsens (:py:mod:`varsens.saltelli`)
-===============================
+====================================
 
 .. automodule:: varsens.saltelli
     :members:

@@ -33,6 +33,8 @@ class Sample(object):
             the sensitivity calculations has not been achieved.
         verbose : bool, optional (default: True)
             Verbose output
+        raw : Array, optional (default: None)
+            A preloaded array, to be used as is with no shuffling. Requires k and n to match.
         loadArgs : keyword arguments, optional
             Arguments for loading pre-generated sample spaces from file (passed to 
             Sample.load()). There are two types of samples that can be loaded: 1) A 
@@ -57,24 +59,34 @@ class Sample(object):
             'postfix'  : File postfix (optional; default = '.txt').
             'delimiter': Column delimiter in input files (optional; default = '\t').
     '''
-    def __init__(self, k, n, scaling=None, discard=0, verbose=True, **loadArgs):
+    def __init__(self, k, n, scaling=None, discard=0, verbose=True, raw=None, **loadArgs):
         
         self.k = int(k) # Cast to int to allow for scientific notation (useful for large models).
         self.n = int(n)
         self.scaling = scaling
         self.verbose = verbose
 
-        if self.verbose: print "Generating Low Discrepancy Sequence..."
-        
-        if loadArgs:
+        if not raw is None:
+            if self.verbose: print "Using provided raw sample"
+            x = raw
+            if x.shape != (2*self.n, self.k):
+              raise Exception("Raw sample dimensions do not match specified dimensions")           
+        elif loadArgs:
+            if self.verbose: print "Loading Sample from loadArgs"
             x = self.load(**loadArgs)
             if x.shape == (2*self.n*(1+self.k), self.k): return
         else: # Generate the sample
+            if self.verbose: print "Generating Low Discrepancy Sequence"
             if not self.scaling:
                 raise Exception("Generating a fresh sample space requires that a 'scaling' function be defined.")
             seq = ghalton.Halton(self.k)
             seq.get(20*self.k + int(discard)) # Remove initial linear correlated points plus any additional specified by the user.
             x = numpy.array(seq.get(2*self.n))
+
+        if scaling is None:
+            if self.verbose: print "Defaulting to identity scaling of parameter space"
+            self.scaling = lambda x:x
+
         
         if self.verbose: print "Generating M_1"
         self.M_1 = self.scaling(x[0:self.n,...])
@@ -82,10 +94,12 @@ class Sample(object):
         if self.verbose: print "Generating M_2"
         self.M_2 = self.scaling(x[self.n:(2*self.n),...])
 
-        # This is the magic trick that makes it all work, not mentioned in Saltelli's papers.
-        if self.verbose: print "Eliminating correlations"
-        numpy.random.seed(1)
-        numpy.random.shuffle(self.M_2) # Eliminate any correlation
+        # NOTE: This is the magic trick that makes it all work, not mentioned in Saltelli's papers.
+        # There can be no correlation between sample M_1 and M_2
+        if not raw is None:
+            if self.verbose: print "Eliminating correlations"
+            numpy.random.seed(1)
+            numpy.random.shuffle(self.M_2) # Eliminate any correlation
 
         # Generate the sample/resample permutations
         if self.verbose: print "Generating N_j"
@@ -94,7 +108,7 @@ class Sample(object):
         if self.verbose: print "Generating N_nj"
         self.N_nj = self.generate_N_j(self.M_2, self.M_1)
         
-        if self.verbose: print "...Done."
+        if self.verbose: print "...Sample Created."
     
     def generate_N_j(self, M_1, M_2):
         '''When passing the quasi-random low discrepancy-treated M_1 and M_2 matrices, 

@@ -37,8 +37,11 @@ Short Example
 
 Please read the Saltelli paper for interpretation of the results.
 
-Shawn Garbett <shawn.garbett at Vanderbilt.edu>
+Authors
+-------
 
-Carlos Lopez <c.lopez at Vanderbilt.edu>
+Shawn Garbett <shawn.garbett@Vanderbilt.edu>
 
-Alexander Lubbock <alex.lubbock at vanderbilt.edu>
+Carlos Lopez <c.lopez@Vanderbilt.edu>
+
+Alexander Lubbock <alex.lubbock@vanderbilt.edu>

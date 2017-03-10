@@ -96,10 +96,9 @@ class Sample(object):
 
         # NOTE: This is the magic trick that makes it all work, not mentioned in Saltelli's papers.
         # There can be no correlation between sample M_1 and M_2
-        if not raw is None:
-            if self.verbose: print "Eliminating correlations"
-            numpy.random.seed(1)
-            numpy.random.shuffle(self.M_2) # Eliminate any correlation
+        if self.verbose: print "Eliminating correlations"
+        numpy.random.seed(1)
+        numpy.random.shuffle(self.M_2) # Eliminate any correlation
 
         # Generate the sample/resample permutations
         if self.verbose: print "Generating N_j"
@@ -266,6 +265,7 @@ class Objective(object):
     objective_func : function, optional (default: None)
         Will be passed each point in the sample space and must return a value, or vector of values
         for multi-objective computation.
+    objective_vals : Array containing the raw values
     verbose : bool, optional (default: True)
         Verbose output.
     loadArgs : keyword arguments, optional
@@ -292,7 +292,7 @@ class Objective(object):
         self.objective_func = objective_func
         self.verbose        = verbose
 
-        if self.verbose: print "Generating Objective Values..."
+        if self.verbose: print "Generating Objective Values."
         
         if len(objective_vals) > 0: # values loaded in an array
             self.load(objective_vals)
